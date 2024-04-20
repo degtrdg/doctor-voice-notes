@@ -81,8 +81,7 @@ async def upload_audio(file: UploadFile = File(...)):
 
         with open(mp3_path, 'rb') as audio_file:
             transcription = client.audio.transcriptions.create(
-                model="whisper-1", file=audio_file)
-
+                model="whisper-1", file=audio_file, prompt="Omeprazole, Medical Marijuana, Acetaminophen, Warfarin, Metformin, Albuterol, Sertraline")
         Path(temp_path).unlink()
         Path(mp3_path).unlink()
 
