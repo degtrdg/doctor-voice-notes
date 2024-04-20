@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import AudioRecorderPlayer from 'react-native-audio-recorder-player';
+import { Audio } from 'expo-av';
+import { FAST_API_URL } from "./constants";
+import * as FileSystem from 'expo-file-system';
+import axios from 'axios';
 
 const size = 80;
 const audioRecorderPlayer = new AudioRecorderPlayer();
@@ -9,68 +13,84 @@ const audioRecorderPlayer = new AudioRecorderPlayer();
 const RecordButton = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordPath, setRecordPath] = useState('');
+  const [recording, setRecording] = useState(null);
+  const [audioPermission, setAudioPermission] = useState(null);
 
-  const onStartRecord = async () => {
-    console.log('onStartRecord');
-    console.log('start record');
-    const path = Platform.select({
-      ios: 'hello.m4a',
-      android: 'sdcard/hello.mp4',
-    });
-    console.log(`path: ${path}`);
-    const uri = await audioRecorderPlayer.startRecorder(path);
-    console.log(`uri: ${uri}`)
-    setRecordPath(path);
-    audioRecorderPlayer.addRecordBackListener((e) => {
-      console.log('recording', e);
-      return;
-    });
-    console.log(`uri: ${uri}`);
+  useEffect(() => {
+    async function getPermission() {
+      await Audio.requestPermissionsAsync().then((permission) => {
+        console.log('Permission Granted: ' + permission.granted);
+        setAudioPermission(permission.granted)
+      }).catch(error => {
+        console.log(error);
+      });
+    };
+
+    getPermission();
+  }, []);
+
+  const startRecording = async () => {
+    try {
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true
+      });
+      const newRecording = new Audio.Recording();
+      await newRecording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
+      await newRecording.startAsync();
+      setRecording(newRecording);
+      setIsRecording(true);
+
+      // Automatically stop and restart recording every 10 seconds
+      setInterval(async () => {
+        if (newRecording) {
+          await stopRecording(newRecording);
+          await startRecording();
+        }
+      }, 10000);  // 10000 ms = 10 seconds
+    } catch (error) {
+      console.error('Failed to start recording', error);
+    }
   };
 
-  const onStopRecord = async () => {
-    const result = await audioRecorderPlayer.stopRecorder();
-    audioRecorderPlayer.removeRecordBackListener();
-    console.log(result);
-    uploadAudioFile(recordPath);
+  const stopRecording = async (recording) => {
+    try {
+      console.log('Stopping Recording');
+      await recording.stopAndUnloadAsync();
+      const uri = recording.getURI();
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      uploadAudio(fileInfo.uri);
+      // setRecording(null);
+    } catch (error) {
+      console.error('Failed to stop recording', error);
+    }
   };
 
-  const uploadAudioFile = async (audioPath) => {
+  const uploadAudio = async (uri) => {
     const data = new FormData();
     data.append('file', {
-        uri: audioUri,
-        name: 'audio.caf',
-        type: 'audio/caf',
+      uri: uri,
+      name: 'audio.caf',
+      type: 'audio/caf',
     });
-
     try {
-      const response = await fetch('https://8c0f-131-179-94-24.ngrok-free.app/api/v1/upload_audio', {
-        method: 'POST',
-        body: data,
+      const response = await axios.post(`FAST_API_URL`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
       });
-
-      const responseBody = await response.json();
-      if (response.status === 200) {
-        Alert.alert('Upload Success', 'Audio file uploaded successfully');
-      } else {
-        Alert.alert('Upload Failed', 'Failed to upload audio file');
-      }
+      console.log('Audio uploaded:', response.data);
     } catch (error) {
-      console.error('Upload error:', error);
-      Alert.alert('Upload Error', 'An error occurred while uploading the file');
+      console.error('Upload failed:', error);
     }
   };
 
-  const handlePress = () => {
-    if (!isRecording) {
-      onStartRecord();
+  const handleRecordButtonPress = async () => {
+    if (isRecording) {
+      await stopRecording(recording);
     } else {
-      onStopRecord();
+      await startRecording();
     }
-    setIsRecording(!isRecording);
   };
 
   const styles = StyleSheet.create({
@@ -87,7 +107,7 @@ const RecordButton = () => {
   return (
     <TouchableOpacity
       style={styles.button}
-      onPress={handlePress}
+      onPress={handleRecordButtonPress}
       backgroundColor="blue"
     >
       <Icon
