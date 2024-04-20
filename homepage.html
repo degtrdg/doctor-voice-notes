@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PreScribe: Home</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font */
+            margin: 0;
+            padding: 0;
+            background-color: #001861;
+            color: #ffffff;
+        }
+        header {
+            background-color: #001861;
+            padding: 5px 0; /* Increased padding */
+            text-align: left;
+            color: #ffffff;
+            position: fixed;
+            width: 100%;
+            z-index: 1000;
+            top: 0;
+        }
+        .header-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .logo {
+            font-size: 17px; /* Increased font size */
+            margin: 0;
+            font-weight: bold; /* Added font weight */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font */
+            display: flex;
+            align-items: center;
+        }
+        .logo img {
+            height: 50px; /* Adjust height of the logo */
+            margin-right: 5px; /* Add spacing between logo and text */
+            filter: invert(1);
+        }
+        .hero {
+            
+            background-image: linear-gradient(to right, #c1cef6, #5e79ca); /* Gradient from white to blue */
+            background-size: cover;
+            background-position: center;
+            color: #000000;
+            text-align: center;
+            padding: 150px 50px; /* Adjusted padding */
+            margin-top: 70px;
+            position: relative; /* Added relative positioning */
+        }
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            margin-left: -200px; /* Move text slightly to the left */
+        }
+        .hero p {
+            font-size: 20px;
+            margin-bottom: 30px;
+            margin-left: -200px; /* Move text slightly to the left */
+        }
+        .cta-button {
+            background-color: #001861;
+            color: #ffffff;
+            padding: 15px 30px;
+            font-size: 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+            margin-left: -200px; /* Move button slightly to the left */
+        }
+        .cta-button:hover {
+            background-color: #001861;
+        }
+        .services {
+            padding: 100px 40px;
+            text-align: center;
+            background-color: #001861;
+            color: #ffffff;
+        }
+        .services h2 {
+            font-size: 36px;
+            margin-bottom: 40px;
+        }
+        .services p {
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 30px;
+        }
+        .diagram-image {
+            position: absolute; /* Position the image absolutely */
+            top: 50%; /* Move the image to the middle of the hero section */
+            right: 140px; /* Adjust the distance from the right */
+            transform: translateY(-50%); /* Center vertically */
+            max-width: 400px; /* Limit the image width */
+        }
+        .split-section {
+            display: flex;
+            justify-content: space-between;
+            padding: 100px 40px;
+            background-color: #3e92cc;
+            color: #000000;
+        }
+        .split-section .text {
+            flex: 0 0 50%; /* Take up half of the space */
+            padding-right: 20px; /* Add some spacing */
+        }
+        .split-section .image {
+            flex: 0 0 50%; /* Take up half of the space */
+        }
+        .split-section img {
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-container">
+            <div class="logo">
+                <img src="medclipboard.jpg" alt="PreScribe Logo">
+                <h1>PreScribe</h1>
+            </div>
+            <!-- Add navigation links here -->
+        </div>
+    </header>
+
+    <div class="hero">
+        <h1>Welcome to PreScribe</h1>
+        <p>Prescribe Responsibly, Scribe Accurately.</p>
+        <a href="#" class="cta-button"><b>Launch</b></a>
+        <img src="diagram-removebg-preview.png" alt="Diagram" class="diagram-image">
+    </div>
+
+    <div class="services">
+        <h2>Our Services</h2>
+        <p>Our app offers a unique set of services focused on ensuring medication safety and patient well-being. We specialize in AI-driven conversation analysis, medication checklist implementation, and real-time monitoring of doctor-patient interactions. With our expertise, we ensure that every prescription is accompanied by thorough safety checks, enhancing patient care and peace of mind.</p>
+    </div>
+
+    <!-- First split section -->
+    <div class="split-section">
+        <div class="text">
+            <h2>Dashboard</h2>
+            <p>This is the dashboard, where you can see...</p>
+        </div>
+        <div class="image">
+            <img src="example-image.jpg" alt="Example Image">
+        </div>
+    </div>
+
+    <!-- Second split section -->
+    <div class="split-section">
+        <div class="image">
+            <img src="example-image.jpg" alt="Example Image">
+        </div>
+        <div class="text">
+            <h2>Transcription</h2>
+            <p>This is the conversation between the doctor and patient being transcribed in real time. The prescribed drug in this case is metformin, and as the doctor and patient discuss the prescription, the checklist for metformin is checked off.</p>
+        </div>
+    </div>
+</body>
+</html>
