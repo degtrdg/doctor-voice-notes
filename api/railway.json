@@ -4,13 +4,12 @@
     "builder": "NIXPACKS",
     "nixpacksPlan": {
       "providers": ["python"],
-      "phases": {
-        "install": {
-          "name": "ffmpeg-installation",
-          "cmds": ["echo Installing ffmpeg"],
-          "nixPkgs": ["ffmpeg"]
-        }
-      }
+      "setup": "python311, gcc",
+      "install": [
+        "python -m venv --copies /opt/venv && . /opt/venv/bin/activate",
+        "pip install -r requirements.txt"
+      ],
+      "phases": {}
     }
   },
   "deploy": {
