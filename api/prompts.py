@@ -20,7 +20,7 @@ You are a diarization system that has been trained on a dataset of audio recordi
 '''.strip()
 
 prompt_extract_drug = '''
-You are given the current transcript between a doctor and a patient. Your job is to detect if the doctor has decided to PRESCRIBE a drug to the patient (not just if a drug is referenced). If so you need to output the drug in the specified format which will be told later.
+You are given the current transcript between a doctor and a patient. Your job is to detect if the doctor has decided to PRESCRIBE a drug or drugs to the patient (not just if a drug is referenced). If so you need to output the drugs in the specified format which will be told later.
 
 These are example drugs that are written in a specific naming convention. You want to interpret the transcript knowing that there might be errors and interpret it like the drugs that are shown below:
 ```md
@@ -40,7 +40,7 @@ This is the transcript so far:
 {transcript}
 ```
 
-Output a md block below with the drug that has been prescribed. Output an empty md block if no drug has been prescribed. Don't yap.
+Output a md block below with the drug/drug that have been prescribed. If there are multiple drugs, output each drug on a newline in the md block like you've seen in the example list of drugs. Output an empty md block if no drug has been prescribed. Don't yap.
 '''.strip()
 
 sysprompt_extract_drug = '''
