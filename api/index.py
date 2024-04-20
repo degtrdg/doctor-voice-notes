@@ -1,20 +1,39 @@
 from io import BytesIO
+import json
 import os
 from pathlib import Path
 import shutil
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket
 from openai import OpenAI
 from pydantic import BaseModel
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from fastapi.middleware.cors import CORSMiddleware
-# from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
-# from .chatgpt import complete
-from prompts import prompt, sysprompt, MARKDOWN_PATTERN
-from chatgpt import complete
+from .prompts import prompt, sysprompt, MARKDOWN_PATTERN, prompt_extract_drug, JSON_PATTERN, prompt_checklist, sysprompt_checklist, sysprompt_extract_drug, drugs
+from .chatgpt import complete
+# from prompts import prompt, sysprompt, MARKDOWN_PATTERN, prompt_extract_drug, JSON_PATTERN, prompt_checklist, sysprompt_checklist, sysprompt_extract_drug, drugs
+# from chatgpt import complete
 import re
 from pydub import AudioSegment
 
-sessions = {}
+sessions = {
+    "1": {
+        "diarization": [
+            """
+Doctor: Hello Mr. George, how are you today?
+Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
+Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
+Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
+Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
+Patient: No I am not.
+Doctor: Okay. Have you ever had an infection in your liver or kidneys?
+Patient: No, I have not had any.
+Doctor: Perfect. Are you allergic to any medication?
+Patient: No.
+""".strip()
+        ],
+        "curr_checklist": [],
+    }
+}
 
 client = OpenAI()
 client.api_key = os.getenv("OPENAI_API_KEY")
@@ -44,6 +63,11 @@ class ResponseBody(BaseModel):
 class ResponseModel(BaseModel):
     success: bool
     message: str | Dict[str, Any]
+
+
+class ChecklistModel(BaseModel):
+    success: bool
+    checklist: Any
 
 
 UPLOAD_DIRECTORY = Path(__file__).parent / "uploads"
@@ -81,8 +105,7 @@ async def upload_audio(file: UploadFile = File(...)):
 
         with open(mp3_path, 'rb') as audio_file:
             transcription = client.audio.transcriptions.create(
-                model="whisper-1", file=audio_file)
-
+                model="whisper-1", file=audio_file, prompt="Omeprazole, Medical Marijuana, Acetaminophen, Warfarin, Metformin, Albuterol, Sertraline")
         Path(temp_path).unlink()
         Path(mp3_path).unlink()
 
@@ -160,7 +183,89 @@ Patient: No. **_checks off Must Not Be Allergic to Metformin_**
     )
 
 
-@app.get("/api/checklist/{session_id}")
-def get_checklist(session_id: str):
-    # might be a problem if context length is too long but fine for now
-    total_diarization = sessions[session_id]['diarization'].join('\n')
+def get_checklist(prompt_text, model_version, use_cache=True):
+    response = complete(messages=[{"role": "system", "content": sysprompt},
+                                  {"role": "user", "content": prompt_text}], model=model_version, use_cache=use_cache)
+    return response
+
+
+@app.get("/api/checklist_state/{session_id}")
+async def get_checklist_state(session_id: str):
+    # Retrieve the session data
+    session_data = sessions.get(session_id)
+    if not session_data:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Join all transcripts in the session
+    full_transcript = '\n'.join(session_data.get('diarization', []))
+    assert session_data.get('diarization', []) != []
+
+    # Initialize the checklist state
+    checklist_state = session_data.get('curr_checklist')
+
+    # If there is no checklist, try to find a prescription in the transcript
+    if not checklist_state:
+        curr_prompt = prompt_extract_drug.format(transcript=full_transcript)
+        response = get_checklist(curr_prompt, "gpt-3.5-turbo")
+        match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+        if match:
+            drug = match.group(1).strip()
+        else:
+            response = get_checklist(
+                curr_prompt, "gpt-3.5-turbo", use_cache=False)
+            drug = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+            if match:
+                drug = match.group(1).strip()
+            else:
+                print(
+                    "Error: Could not extract the checklist from the model's response.")
+                drug = None
+                # If no checklist is found, return an empty checklist state
+                checklist_state = {
+                    "message": "No checklist found in the transcript."}
+                return ChecklistModel(
+                    success=False,
+                    checklist=checklist_state
+                )
+        drug = drug.strip()
+        if drug in drugs:
+            checklist_state = drugs[drug]
+        else:
+            return ChecklistModel(
+                success=True,
+                checklist={}
+            )
+
+    # If there is a checklist, update it based on the transcript
+    if checklist_state:
+        curr_prompt = prompt_checklist.format(
+            drug=drug, checklist=json.dumps(checklist_state['contraindications'], indent=2), transcript=full_transcript)
+        response = get_checklist(curr_prompt, "gpt-4-turbo")
+        match = re.search(JSON_PATTERN, response, re.DOTALL)
+        if match:
+            # TODO: this needs more checks but should be fine tbh
+            updated_checklist = json.loads(match.group(1).strip())
+            checklist_state['contraindications'] = updated_checklist
+        else:
+            # If the checklist cannot be updated, return the current state with an error message
+            print(
+                "Error: Could not extract the updated checklist from the model's response.")
+            checklist_state = {
+                "message": "Could not update the checklist based on the transcript."}
+            return ChecklistModel(
+                success=False,
+                checklist=checklist_state
+            )
+    else:
+        # If there is no checklist, return an error message
+        checklist_state = {
+            "message": "No checklist found in the transcript."}
+        return ChecklistModel(
+            success=False,
+            checklist=checklist_state
+        )
+
+    return ChecklistModel(
+        success=True,
+        checklist=updated_checklist
+    )
