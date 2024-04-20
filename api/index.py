@@ -7,10 +7,10 @@ from openai import OpenAI
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
-from .chatgpt import complete
-# from prompts import prompt, sysprompt, MARKDOWN_PATTERN
-# from chatgpt import complete
+# from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
+# from .chatgpt import complete
+from prompts import prompt, sysprompt, MARKDOWN_PATTERN
+from chatgpt import complete
 import re
 from pydub import AudioSegment
 
@@ -64,11 +64,6 @@ app.add_middleware(
 @app.get("/")
 async def root():
     return {"message": "Whisper Transcription Service"}
-
-
-class UploadRequest(BaseModel):
-    session_id: str
-    file: UploadFile = File(...)
 
 
 @app.post("/api/upload_audio")
