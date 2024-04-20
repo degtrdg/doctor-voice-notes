@@ -5,10 +5,9 @@ import shutil
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket
 from openai import OpenAI
 from pydantic import BaseModel
-from diff_match_patch import diff_match_patch
 from typing import Any, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from .prompts import prompt, prompt_filter, sysprompt, ANSWER_PATTERN, MARKDOWN_PATTERN
+from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
 from .chatgpt import complete
 import re
 from pydub import AudioSegment
@@ -65,11 +64,16 @@ async def root():
     return {"message": "Whisper Transcription Service"}
 
 
-@app.post("/api/upload_audio/{session_id}")
-async def upload_audio(session_id: str, file: UploadFile = File(...)):
-    temp_path = UPLOAD_DIRECTORY / file.filename
+class UploadRequest(BaseModel):
+    session_id: str
+    file: UploadFile = File(...)
+
+
+@app.post("/api/upload_audio")
+async def upload_audio(request: UploadRequest):
+    temp_path = UPLOAD_DIRECTORY / request.file.filename
     with temp_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(request.file.file, buffer)
 
     mp3_path = UPLOAD_DIRECTORY / "audio.mp3"
     AudioSegment.from_file(str(temp_path)).export(str(mp3_path), format="mp3")
@@ -109,9 +113,12 @@ async def upload_audio(session_id: str, file: UploadFile = File(...)):
             )
 
     # Update the session with the transcription text
-    if session_id not in sessions:
-        sessions[session_id] = []
-    sessions[session_id].append(markdown_final)
+    if request.session_id not in sessions:
+        sessions[request.session_id] = {
+            "diarization": [],
+            "curr_checklist": [],
+        }
+    sessions[request.session_id]['diarization'].append(markdown_final)
 
     # Return the markdown content
     return ResponseModel(
@@ -119,4 +126,32 @@ async def upload_audio(session_id: str, file: UploadFile = File(...)):
         message={"diarization": markdown_final}
     )
 
-# check for each thing
+
+@app.get("/api/all_transcripts/{session_id}")
+def get_total_transcript(session_id: str):
+    # might be a problem if context length is too long but fine for now
+    # total_diarization = sessions[session_id]['diarization'].join('\n')
+
+    example = """
+Doctor: Hello Mr. George, how are you today?
+Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
+Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
+Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
+Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
+Patient: No I am not. **_checks off Not On Other Medication_**
+Doctor: Okay. Have you ever had an infection in your liver or kidneys?
+Patient: No, I have not had any. **_checks off Must Not Have Liver Disease or Kidney Disease_**
+Doctor: Perfect. Are you allergic to any medication?
+Patient: No. **_checks off Must Not Be Allergic to Metformin_**
+""".strip()
+
+    return ResponseModel(
+        success=True,
+        message={"diarization": example}
+    )
+
+
+@app.get("/api/checklist/{session_id}")
+def get_checklist(session_id: str):
+    # might be a problem if context length is too long but fine for now
+    total_diarization = sessions[session_id]['diarization'].join('\n')

@@ -1,10 +1,10 @@
 Doctor: Hello Mr. George, how are you today?
-Mr. George: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
+Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
 Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
-Mr. George: Hm, I think I have been experiencing frequent urination and blurred vision. 
+Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
 Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
-Mr. George: No I am not. ***checks off Not On Other Medication***
+Patient: No I am not. **_checks off Not On Other Medication_**
 Doctor: Okay. Have you ever had an infection in your liver or kidneys?
-Mr. George: No, I have not had any. ***checks off Must Not Have Liver Disease or Kidney Disease***
+Patient: No, I have not had any. **_checks off Must Not Have Liver Disease or Kidney Disease_**
 Doctor: Perfect. Are you allergic to any medication?
-Mr. George: No. ***checks off Must Not Be Allergic to Metformin***
+Patient: No. **_checks off Must Not Be Allergic to Metformin_**

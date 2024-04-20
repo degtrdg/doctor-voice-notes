@@ -107,3 +107,7 @@ i don't want to do real time diarization
 
 - have session
   - i did that for the gene pertubation one
+
+If there is a name of any drug
+
+- get a drug name in a certain format
