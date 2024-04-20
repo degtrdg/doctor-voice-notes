@@ -7,8 +7,10 @@ from openai import OpenAI
 from pydantic import BaseModel
 from typing import Any, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from prompts import prompt, sysprompt, MARKDOWN_PATTERN
-from chatgpt import complete
+from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
+from .chatgpt import complete
+# from prompts import prompt, sysprompt, MARKDOWN_PATTERN
+# from chatgpt import complete
 import re
 from pydub import AudioSegment
 
@@ -70,61 +72,73 @@ class UploadRequest(BaseModel):
 
 
 @app.post("/api/upload_audio")
-async def upload_audio(request: UploadRequest):
-    temp_path = UPLOAD_DIRECTORY / request.file.filename
-    with temp_path.open("wb") as buffer:
-        shutil.copyfileobj(request.file.file, buffer)
+async def upload_audio(file: UploadFile = File(...)):
+    try:
+        print('Received upload request:', file)
+        print('func')
+        temp_path = UPLOAD_DIRECTORY / file.filename
+        with temp_path.open("wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
 
-    mp3_path = UPLOAD_DIRECTORY / "audio.mp3"
-    AudioSegment.from_file(str(temp_path)).export(str(mp3_path), format="mp3")
+        mp3_path = UPLOAD_DIRECTORY / "audio.mp3"
+        AudioSegment.from_file(str(temp_path)).export(
+            str(mp3_path), format="mp3")
 
-    with open(mp3_path, 'rb') as audio_file:
-        transcription = client.audio.transcriptions.create(
-            model="whisper-1", file=audio_file)
+        with open(mp3_path, 'rb') as audio_file:
+            transcription = client.audio.transcriptions.create(
+                model="whisper-1", file=audio_file)
 
-    Path(temp_path).unlink()
-    Path(mp3_path).unlink()
+        Path(temp_path).unlink()
+        Path(mp3_path).unlink()
 
-    def get_markdown(prompt_text, model_version):
-        response = complete(messages=[{"role": "system", "content": sysprompt},
-                                      {"role": "user", "content": prompt_text}], model=model_version)
-        return response
+        def get_markdown(prompt_text, model_version):
+            response = complete(messages=[{"role": "system", "content": sysprompt},
+                                          {"role": "user", "content": prompt_text}], model=model_version)
+            return response
 
-    # Attempt to extract markdown from the transcription
-    real_prompt = prompt.format(transcript=transcription.text)
-    markdown_content = get_markdown(real_prompt, "gpt-3.5-turbo")
-    match = re.search(MARKDOWN_PATTERN, markdown_content, re.DOTALL)
-    if match:
-        markdown_final = match.group(1).strip()
-    else:
+        # Attempt to extract markdown from the transcription
         real_prompt = prompt.format(transcript=transcription.text)
-        markdown_content = get_markdown(real_prompt, "gpt-4-turbo-preview")
+        markdown_content = get_markdown(real_prompt, "gpt-3.5-turbo")
         match = re.search(MARKDOWN_PATTERN, markdown_content, re.DOTALL)
         if match:
             markdown_final = match.group(1).strip()
         else:
-            # If no match, log error and return the original transcription
-            print("Error: Could not extract markdown from the model's response.")
-            print(f'real_prompt: {real_prompt}')
-            print(f'markdown_content: {markdown_content}')
-            return ResponseModel(
-                success=False,
-                message="Could not extract markdown from the model's response."
-            )
+            real_prompt = prompt.format(transcript=transcription.text)
+            markdown_content = get_markdown(real_prompt, "gpt-4-turbo-preview")
+            match = re.search(MARKDOWN_PATTERN, markdown_content, re.DOTALL)
+            if match:
+                markdown_final = match.group(1).strip()
+            else:
+                # If no match, log error and return the original transcription
+                # print("Error: Could not extract markdown from the model's response.")
+                print(f'real_prompt: {real_prompt}')
+                # print(f'markdown_content: {markdown_content}')
+                return ResponseModel(
+                    success=False,
+                    message="Could not extract markdown from the model's response."
+                )
 
-    # Update the session with the transcription text
-    if request.session_id not in sessions:
-        sessions[request.session_id] = {
-            "diarization": [],
-            "curr_checklist": [],
-        }
-    sessions[request.session_id]['diarization'].append(markdown_final)
+        # Update the session with the transcription text
+        if '1' not in sessions:
+            sessions['1'] = {
+                "diarization": [],
+                "curr_checklist": [],
+            }
+        print(f'markdown {markdown_final}')
+        sessions['1']['diarization'].append(markdown_final)
 
-    # Return the markdown content
-    return ResponseModel(
-        success=True,
-        message={"diarization": markdown_final}
-    )
+        # Return the markdown content
+        return ResponseModel(
+            success=True,
+            message={"diarization": markdown_final}
+        )
+
+    except Exception as e:
+        print(e)
+        return ResponseModel(
+            success=False,
+            message=f"An error occurred during transcription. {e}"
+        )
 
 
 @app.get("/api/all_transcripts/{session_id}")

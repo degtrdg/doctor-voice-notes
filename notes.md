@@ -111,3 +111,7 @@ i don't want to do real time diarization
 If there is a name of any drug
 
 - get a drug name in a certain format
+
+To get the railway
+
+- you need to have the NIX
