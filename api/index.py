@@ -128,6 +128,16 @@ async def upload_audio(request: UploadRequest):
     )
 
 
+@app.get("/api/all_transcripts/{session_id}")
+def get_total_transcript(session_id: str):
+    # might be a problem if context length is too long but fine for now
+    total_diarization = sessions[session_id]['diarization'].join('\n')
+    return ResponseModel(
+        success=True,
+        message={"diarization": total_diarization}
+    )
+
+
 @app.get("/api/checklist/{session_id}")
 def get_checklist(session_id: str):
     # might be a problem if context length is too long but fine for now
