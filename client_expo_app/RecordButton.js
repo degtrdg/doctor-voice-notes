@@ -68,6 +68,7 @@ const RecordButton = () => {
 
   const uploadAudio = async (uri) => {
     const data = new FormData();
+    data.append('session_id', '1');
     data.append('file', {
       uri: uri,
       name: 'audio.caf',
