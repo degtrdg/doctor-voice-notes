@@ -115,3 +115,21 @@ If there is a name of any drug
 To get the railway
 
 - you need to have the NIX
+
+Extract
+on each update to the transcript
+
+- need to check if doctor has prescribed anything
+
+aviation
+won't increase safety unless it is more convenient than the current approach
+25% people said they don't spend enough time and spends too much time on the ehr
+computer doesn't discriminate
+
+- can weight all edge cases equally to promote equity
+
+- check for conditions
+  - what conditions?
+
+medication 44%
+diagnostic errors
