@@ -32,6 +32,7 @@ Patient: No.
 """.strip()
         ],
         "curr_checklist": [],
+        'drug': 'Metformin'
     }
 }
 
@@ -72,7 +73,6 @@ class ChecklistModel(BaseModel):
 
 UPLOAD_DIRECTORY = Path(__file__).parent / "uploads"
 UPLOAD_DIRECTORY.mkdir(parents=True, exist_ok=True)
-
 
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
 
@@ -199,67 +199,24 @@ async def get_checklist_state(session_id: str):
     # Join all transcripts in the session
     full_transcript = '\n'.join(session_data.get('diarization', []))
     assert session_data.get('diarization', []) != []
-
-    # Initialize the checklist state
-    checklist_state = session_data.get('curr_checklist')
-
-    # If there is no checklist, try to find a prescription in the transcript
-    if not checklist_state:
-        curr_prompt = prompt_extract_drug.format(transcript=full_transcript)
-        response = get_checklist(curr_prompt, "gpt-3.5-turbo")
-        match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-        if match:
-            drug = match.group(1).strip()
-        else:
-            response = get_checklist(
-                curr_prompt, "gpt-3.5-turbo", use_cache=False)
-            drug = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-            if match:
-                drug = match.group(1).strip()
-            else:
-                print(
-                    "Error: Could not extract the checklist from the model's response.")
-                drug = None
-                # If no checklist is found, return an empty checklist state
-                checklist_state = {
-                    "message": "No checklist found in the transcript."}
-                return ChecklistModel(
-                    success=False,
-                    checklist=checklist_state
-                )
-        drug = drug.strip()
-        if drug in drugs:
-            checklist_state = drugs[drug]
-        else:
-            return ChecklistModel(
-                success=True,
-                checklist={}
-            )
+    drug = session_data.get('drug', [])
 
     # If there is a checklist, update it based on the transcript
-    if checklist_state:
-        curr_prompt = prompt_checklist.format(
-            drug=drug, checklist=json.dumps(checklist_state['contraindications'], indent=2), transcript=full_transcript)
-        response = get_checklist(curr_prompt, "gpt-4-turbo")
-        match = re.search(JSON_PATTERN, response, re.DOTALL)
-        if match:
-            # TODO: this needs more checks but should be fine tbh
-            updated_checklist = json.loads(match.group(1).strip())
-            checklist_state['contraindications'] = updated_checklist
-        else:
-            # If the checklist cannot be updated, return the current state with an error message
-            print(
-                "Error: Could not extract the updated checklist from the model's response.")
-            checklist_state = {
-                "message": "Could not update the checklist based on the transcript."}
-            return ChecklistModel(
-                success=False,
-                checklist=checklist_state
-            )
+    checklist_flat = sessions['curr_checklist']
+    curr_prompt = prompt_checklist.format(
+        drug=drug, checklist=json.dumps(checklist_flat, indent=2), transcript=full_transcript)
+    response = get_checklist(curr_prompt, "gpt-4-turbo")
+    match = re.search(JSON_PATTERN, response, re.DOTALL)
+    if match:
+        # TODO: this needs more checks but should be fine tbh
+        updated_checklist = json.loads(match.group(1).strip())
+        checklist_state['contraindications'] = updated_checklist
     else:
-        # If there is no checklist, return an error message
+        # If the checklist cannot be updated, return the current state with an error message
+        print(
+            "Error: Could not extract the updated checklist from the model's response.")
         checklist_state = {
-            "message": "No checklist found in the transcript."}
+            "message": "Could not update the checklist based on the transcript."}
         return ChecklistModel(
             success=False,
             checklist=checklist_state
@@ -268,4 +225,59 @@ async def get_checklist_state(session_id: str):
     return ChecklistModel(
         success=True,
         checklist=updated_checklist
+    )
+
+
+@app.get("/api/drug_list/{session_id}")
+async def get_drugs_list(session_id: str):
+    # Retrieve the session data
+    session_data = sessions.get(session_id)
+    if not session_data:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Join all transcripts in the session
+    full_transcript = '\n'.join(session_data.get('diarization', []))
+    assert session_data.get('diarization', []) != []
+
+    # Initialize the checklist state
+    checklist_state = session_data.get('curr_checklist')
+
+    curr_prompt = prompt_extract_drug.format(transcript=full_transcript)
+    response = get_checklist(curr_prompt, "gpt-3.5-turbo")
+    match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+    if match:
+        drug = match.group(1).strip()
+    else:
+        response = get_checklist(
+            curr_prompt, "gpt-3.5-turbo", use_cache=False)
+        drug = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+        if match:
+            drugs_list = match.group(1).strip()
+        else:
+            print(
+                "Error: Could not extract md block from the model's response.")
+            # If no checklist is found, return an empty checklist state
+            checklist_state = {
+                "message": "Could not extract md block from the model's response."}
+            return ChecklistModel(
+                success=False,
+                checklist=checklist_state
+            )
+
+        drugs_list = drug.strip().split('\n')
+        checklist_state = []
+
+        if not drugs_list:
+            return ChecklistModel(
+                success=True,
+                checklist={}
+            )
+
+        for drug in drugs_list:
+            if drug in drugs:
+                checklist_state.append(drugs[drug]['contraindications'])
+
+    return ChecklistModel(
+        success=True,
+        checklist=checklist_state
     )

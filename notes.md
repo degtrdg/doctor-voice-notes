@@ -133,3 +133,7 @@ computer doesn't discriminate
 
 medication 44%
 diagnostic errors
+
+Let's break this down:
+
+-
