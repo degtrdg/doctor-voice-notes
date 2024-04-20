@@ -1,3 +1,3 @@
-const FAST_API_URL = "https://8c0f-131-179-94-24.ngrok-free.app/api/v1/upload_audio"
+const FAST_API_URL = "https://doctor-voice-notes-production.up.railway.app/api/upload_audio"
 
 export { FAST_API_URL }
