@@ -65,11 +65,16 @@ async def root():
     return {"message": "Whisper Transcription Service"}
 
 
-@app.post("/api/upload_audio/{session_id}")
-async def upload_audio(session_id: str, file: UploadFile = File(...)):
-    temp_path = UPLOAD_DIRECTORY / file.filename
+class UploadRequest(BaseModel):
+    session_id: str
+    file: UploadFile = File(...)
+
+
+@app.post("/api/upload_audio")
+async def upload_audio(request: UploadRequest):
+    temp_path = UPLOAD_DIRECTORY / request.file.filename
     with temp_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        shutil.copyfileobj(request.file.file, buffer)
 
     mp3_path = UPLOAD_DIRECTORY / "audio.mp3"
     AudioSegment.from_file(str(temp_path)).export(str(mp3_path), format="mp3")
@@ -109,9 +114,12 @@ async def upload_audio(session_id: str, file: UploadFile = File(...)):
             )
 
     # Update the session with the transcription text
-    if session_id not in sessions:
-        sessions[session_id] = []
-    sessions[session_id].append(markdown_final)
+    if request.session_id not in sessions:
+        sessions[request.session_id] = {
+            "diarization": [],
+            "curr_checklist": [],
+        }
+    sessions[request.session_id]['diarization'].append(markdown_final)
 
     # Return the markdown content
     return ResponseModel(
@@ -119,4 +127,8 @@ async def upload_audio(session_id: str, file: UploadFile = File(...)):
         message={"diarization": markdown_final}
     )
 
-# check for each thing
+
+@app.get("/api/checklist/{session_id}")
+def get_checklist(session_id: str):
+    # might be a problem if context length is too long but fine for now
+    total_diarization = sessions[session_id]['diarization'].join('\n')
