@@ -5,10 +5,9 @@ import shutil
 from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket
 from openai import OpenAI
 from pydantic import BaseModel
-from diff_match_patch import diff_match_patch
 from typing import Any, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
-from .prompts import prompt, sysprompt, ANSWER_PATTERN, MARKDOWN_PATTERN
+from .prompts import prompt, sysprompt, MARKDOWN_PATTERN
 from .chatgpt import complete
 import re
 from pydub import AudioSegment
