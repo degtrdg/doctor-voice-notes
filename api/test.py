@@ -135,9 +135,9 @@ checklist = None
 # Function to call the complete function and extract the answer
 
 
-def get_checklist(prompt_text, model_version):
+def get_checklist(prompt_text, model_version, use_cache=True):
     response = complete(messages=[{"role": "system", "content": sysprompt},
-                                  {"role": "user", "content": prompt_text}], model=model_version)
+                                  {"role": "user", "content": prompt_text}], model=model_version, use_cache=use_cache)
     return response
 
 
@@ -148,12 +148,12 @@ if not checklist:
     print(response)
     # Extract the checklist from the response
     match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-    print(checklist)
     if match:
-        checklist = match.group(1).strip()
+        drug = match.group(1).strip()
     else:
         curr_prompt = prompt_extract_drug.format(transcript=chunk1)
-        response = get_checklist(curr_prompt, "gpt-4-turbo-preview")
+        response = get_checklist(
+            curr_prompt, "gpt-3.5-turbo", use_cache=False)
         drug = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
         if match:
             drug = match.group(1).strip()
@@ -172,9 +172,8 @@ if not checklist:
     print(response)
     # Extract the checklist from the response
     match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-    print(checklist)
     if match:
-        checklist = match.group(1).strip()
+        drug = match.group(1).strip()
     else:
         curr_prompt = prompt_extract_drug.format(transcript=chunk2)
         response = get_checklist(curr_prompt, "gpt-4-turbo-preview")
@@ -190,6 +189,7 @@ print('drug should be a drug')
 print(f'drug {drug}')
 
 # Getting the checklist from the drug by querying the dict
+# TODO: should do lots of validation here tbh but should be fine
 if drug:
     drug = drug.strip()
     if drug in drugs:
@@ -201,8 +201,8 @@ if drug:
 # Now we can get updates to the checklist based on the transcript
 if checklist:
     curr_prompt = prompt_checklist.format(
-        drug=drug, checklist=checklist, transcript=chunk2)
-    response = get_checklist(curr_prompt, "gpt-3.5-turbo")
+        drug=drug, checklist=json.dumps(checklist['contraindications'], indent=2), transcript=chunk2)
+    response = get_checklist(curr_prompt, "gpt-4-turbo")
     print(response)
     # Extract the updated checklist from the response
     match = re.search(JSON_PATTERN, response, re.DOTALL)
@@ -211,7 +211,7 @@ if checklist:
     else:
         curr_prompt = prompt_checklist.format(
             drug=drug, checklist=checklist, transcript=chunk2)
-        response = get_checklist(curr_prompt, "gpt-4-turbo-preview")
+        response = get_checklist(curr_prompt, "gpt-4-turbo")
         match = re.search(JSON_PATTERN, response, re.DOTALL)
         if match:
             updated_checklist = match.group(1).strip()

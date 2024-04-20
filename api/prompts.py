@@ -69,6 +69,78 @@ This is the transcript so far:
 Output a json block below with the updated JSON object to be put in the system. Don't yap.
 '''.strip()
 
+
+drugs = {
+    "Omeprazole": {
+        "type": "Proton Pump Inhibitor",
+        "contraindications": [
+            {"description": "Must not have severe liver disease", "checked": False},
+            {"description": "Must not be allergic to proton pump inhibitors",
+                "checked": False},
+            {"description": "Must not have low magnesium levels in the blood",
+                "checked": False}
+        ]
+    },
+    "Medical Marijuana": {
+        "contraindications": [
+            {"description": "Must not have heart disease", "checked": False},
+            {"description": "Must not be pregnant", "checked": False},
+            {"description": "Must not have a history of psychosis", "checked": False}
+        ]
+    },
+    "Acetaminophen": {
+        "contraindications": [
+            {"description": "Must not drink three or more alcoholic drinks every day",
+             "checked": False},
+            {"description": "Must not have had liver disease", "checked": False}
+        ]
+    },
+    "Warfarin": {
+        "type": "Blood Thinner",
+        "contraindications": [
+            {"description": "Must not have a bleeding disorder", "checked": False},
+            {"description": "Must not have a history of stroke", "checked": False},
+            {"description": "Must not be pregnant", "checked": False},
+            {"description": "Must not have uncontrolled high blood pressure",
+                "checked": False}
+        ]
+    },
+    "Metformin": {
+        "type": "Antidiabetic Medication",
+        "contraindications": [
+            {"description": "Must not have kidney disease", "checked": False},
+            {"description": "Must not have liver disease", "checked": False},
+            {"description": "Must not be pregnant or planning to become pregnant",
+                "checked": False},
+            {"description": "Must not be allergic to metformin", "checked": False}
+        ]
+    },
+    "Albuterol": {
+        "type": "Bronchodilator",
+        "contraindications": [
+            {"description": "Must not have a history of heart rhythm problems",
+                "checked": False},
+            {"description": "Must not have high blood pressure", "checked": False},
+            {"description": "Must not be allergic to albuterol or related medications",
+             "checked": False},
+            {"description": "Must not be pregnant without consulting a doctor",
+                "checked": False}
+        ]
+    },
+    "Sertraline": {
+        "type": "Selective Serotonin Reuptake Inhibitor - SSRI",
+        "contraindications": [
+            {"description": "Must not have a history of bipolar disorder or mania",
+             "checked": False},
+            {"description": "Must not have a history of seizures", "checked": False},
+            {"description": "Must not be pregnant or breastfeeding without consulting a doctor", "checked": False},
+            {"description":
+             "Must not be taking monoamine oxidase inhibitors (MAOIs) or have taken them within the last 14 days", "checked": False}
+        ]
+    }
+}
+
+
 ANSWER_PATTERN = r"(?i)ANSWER\s*:\s*(Yes|No)"
 MARKDOWN_PATTERN = r"```md(.*?)```"
 JSON_PATTERN = r"```json(.*?)```"
