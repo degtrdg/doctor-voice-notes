@@ -79,3 +79,31 @@ We need to think through what structure we want to make the data
     - split on frontend
     - send request for each paragraph
     - show original in input field and new in right
+
+# What do we need to do?
+
+what endpoints?
+we need to save things
+
+- i can let them save things?
+- i just need to have websockets to haev the
+
+i don't want to do real time diarization
+
+- i want to process the audio in 1.5 min intervals and update the firebase
+- i want to have the total convo processed by an LLM to check if a checklist is required
+- if there is a current checklist then process the entire checklist against the transcript
+
+10 sec endpoint
+
+- get audio
+
+  - make sure to prime the audio with good prompt
+  - transcribe
+  - send to gpt-3.5 for diarization
+  - send to firebase
+
+- endpoint for polling the transcripts
+
+- have session
+  - i did that for the gene pertubation one

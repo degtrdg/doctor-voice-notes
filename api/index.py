@@ -1,11 +1,33 @@
-from fastapi import FastAPI
+from io import BytesIO
+import os
+from pathlib import Path
+import shutil
+from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket
+from openai import OpenAI
 from pydantic import BaseModel
 from diff_match_patch import diff_match_patch
-from typing import Optional
+from typing import Any, Dict, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from .prompts import prompt, prompt_filter, sysprompt, ANSWER_PATTERN, MARKDOWN_PATTERN
 from .chatgpt import complete
 import re
+from pydub import AudioSegment
+
+sessions = {}
+
+client = OpenAI()
+client.api_key = os.getenv("OPENAI_API_KEY")
+
+# Define the request and response models
+
+
+class TranscriptionRequest(BaseModel):
+    audio_url: str
+
+
+class TranscriptionResponse(BaseModel):
+    transcript: str
+
 
 class RequestBody(BaseModel):
     paragraph: str
@@ -16,6 +38,15 @@ class ResponseBody(BaseModel):
     original: str
     revised: str
     diff_html: str
+
+
+class ResponseModel(BaseModel):
+    success: bool
+    message: str | Dict[str, Any]
+
+
+UPLOAD_DIRECTORY = Path(__file__).parent / "uploads"
+UPLOAD_DIRECTORY.mkdir(parents=True, exist_ok=True)
 
 
 app = FastAPI(docs_url="/api/docs", openapi_url="/api/openapi.json")
@@ -29,112 +60,63 @@ app.add_middleware(
 )
 
 
-dmp = diff_match_patch()
-
-
-def pretty_diff_to_html(original: str, revised: str) -> str:
-    diffs = dmp.diff_main(original, revised)
-    dmp.diff_cleanupSemantic(diffs)  # Clean up semantic clutter
-    diff_html = []
-    for op, data in diffs:
-        if op == dmp.DIFF_INSERT:
-            diff_html.append(f'<span class="text-green-500">{data}</span>')
-        elif op == dmp.DIFF_DELETE:
-            diff_html.append(f'<span class="text-red-500">{data}</span>')
-        elif op == dmp.DIFF_EQUAL:
-            diff_html.append(data)
-    return ''.join(diff_html)
-
-
 @app.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"message": "Whisper Transcription Service"}
 
 
-@app.post("/api/process", response_model=ResponseBody)
-async def process_paragraph(request: RequestBody) -> ResponseBody:
-    paragraph = request.paragraph
-    weakness = request.weakness
+@app.post("/api/upload_audio/{session_id}")
+async def upload_audio(session_id: str, file: UploadFile = File(...)):
+    temp_path = UPLOAD_DIRECTORY / file.filename
+    with temp_path.open("wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-    # Function to call the complete function and extract the answer
-    def get_revision(prompt_text, model_version):
+    mp3_path = UPLOAD_DIRECTORY / "audio.mp3"
+    AudioSegment.from_file(str(temp_path)).export(str(mp3_path), format="mp3")
+
+    with open(mp3_path, 'rb') as audio_file:
+        transcription = client.audio.transcriptions.create(
+            model="whisper-1", file=audio_file)
+
+    Path(temp_path).unlink()
+    Path(mp3_path).unlink()
+
+    def get_markdown(prompt_text, model_version):
         response = complete(messages=[{"role": "system", "content": sysprompt},
                                       {"role": "user", "content": prompt_text}], model=model_version)
         return response
 
-    # Check if the paragraph needs to be revised
-    filter_prompt = prompt_filter.format(
-        paragraphs=paragraph, weakness=weakness)
-    filter_answer = get_revision(filter_prompt, "gpt-3.5-turbo")
-    match = re.search(ANSWER_PATTERN, filter_answer)
+    # Attempt to extract markdown from the transcription
+    real_prompt = prompt.format(transcript=transcription.text)
+    markdown_content = get_markdown(real_prompt, "gpt-3.5-turbo")
+    match = re.search(MARKDOWN_PATTERN, markdown_content, re.DOTALL)
     if match:
-        user_answer = match.group(1)
-        if user_answer.lower() == 'no':
-            # If still no match or answer is 'no', return the original paragraph
-            return ResponseBody(
-                original=paragraph,
-                revised=paragraph,
-                diff_html=pretty_diff_to_html(paragraph, paragraph)
-            )
-        filter_answer = get_revision(filter_prompt, "gpt-4-turbo-preview")
-        match = re.search(ANSWER_PATTERN, filter_answer)
-        if match:
-            user_answer = match.group(1)
-            if user_answer.lower() == 'no':
-                return ResponseBody(
-                    original=paragraph,
-                    revised=paragraph,
-                    diff_html=pretty_diff_to_html(paragraph, paragraph)
-                )
+        markdown_final = match.group(1).strip()
     else:
-        # try one more time otherwise print error and move on
-        filter_answer = get_revision(filter_prompt, "gpt-4-turbo-preview")
-        match = re.search(ANSWER_PATTERN, filter_answer)
+        real_prompt = prompt.format(transcript=transcription.text)
+        markdown_content = get_markdown(real_prompt, "gpt-4-turbo-preview")
+        match = re.search(MARKDOWN_PATTERN, markdown_content, re.DOTALL)
         if match:
-            user_answer = match.group(1)
-            if user_answer.lower() == 'no':
-                return ResponseBody(
-                    original=paragraph,
-                    revised=paragraph,
-                    diff_html=pretty_diff_to_html(paragraph, paragraph)
-                )
+            markdown_final = match.group(1).strip()
         else:
-            print(
-                'Error: Could not extract the answer from the user\'s response. Moving to the next paragraph.')
-            return ResponseBody(
-                original=paragraph,
-                revised=paragraph,
-                diff_html=pretty_diff_to_html(paragraph, paragraph)
+            # If no match, log error and return the original transcription
+            print("Error: Could not extract markdown from the model's response.")
+            print(f'real_prompt: {real_prompt}')
+            print(f'markdown_content: {markdown_content}')
+            return ResponseModel(
+                success=False,
+                message="Could not extract markdown from the model's response."
             )
 
-    # Get the revision for the paragraph
-    current_prompt = prompt.format(paragraphs=paragraph, weakness=weakness)
-    revision = get_revision(current_prompt, "gpt-4-turbo-preview")
-    match = re.search(MARKDOWN_PATTERN, revision, re.DOTALL)
-    if match:
-        revision = match.group(1).strip()
-    else:
-        # If no match, try one more time
-        revision = get_revision(current_prompt, "gpt-4-turbo-preview")
-        match = re.search(MARKDOWN_PATTERN, revision)
-        if match:
-            revision = match.group(1).strip()
-        else:
-            # If still no match, log error and return the original paragraph
-            print("Error: Could not extract the revision from the model's response.")
-            print(f'current_prompt: {current_prompt}')
-            print(f'revision: {revision}')
-            return ResponseBody(
-                original=paragraph,
-                revised=paragraph,
-                diff_html=pretty_diff_to_html(paragraph, paragraph)
-            )
+    # Update the session with the transcription text
+    if session_id not in sessions:
+        sessions[session_id] = []
+    sessions[session_id].append(markdown_final)
 
-    # Generate the diff HTML
-    diff_html = pretty_diff_to_html(paragraph, revision)
-
-    return ResponseBody(
-        original=paragraph,
-        revised=revision,
-        diff_html=diff_html
+    # Return the markdown content
+    return ResponseModel(
+        success=True,
+        message={"diarization": markdown_final}
     )
+
+# check for each thing
