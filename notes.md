@@ -121,19 +121,43 @@ on each update to the transcript
 
 - need to check if doctor has prescribed anything
 
-aviation
-won't increase safety unless it is more convenient than the current approach
-25% people said they don't spend enough time and spends too much time on the ehr
-computer doesn't discriminate
+Aviation
+
+- healthcare isn't there yet
+  won't increase safety unless it is more convenient than the current approach
+  25% people said they don't spend enough time and spends too much time on the ehr
+  computer doesn't discriminate
 
 - can weight all edge cases equally to promote equity
 
 - check for conditions
   - what conditions?
 
-medication 44%
-diagnostic errors
+Medication 44%
+Diagnostic errors
+Our health care workers are overworked. Nurses and doctors spend around a daily median 4.5 hours of their time on EHR notes. This type of draining work would affect the quality anyone's work. It's not just doctors that are affected. A frequent complaint on the part of patients is that they don't feel like their being listened to when their doctor is forced to stay in front of a screen.
 
-Let's break this down:
+As such we've seen an explosion of AI scribes which relieve this problem. But one avenue that hasn't been fully exploited is using this technology to prevent and aid doctors in maximizing patient safety.
 
--
+Medication errors alone account 44% of patient safety problems. Diagnostic error is also the leading cause of preventable patient harm as well.
+
+We also know that checklists save lives. (insert images of studies and checklist manifesto).
+
+- This type of mentality is what makes the aviation industry so safe
+- Ideally we'd be doing this in health care too, but things change much faster here than in aviation
+
+Adding more work on the part of the doctor to keep up with the latest checklists would only worsen the problem we have of our medical {people} wanting to leave within two years (cite) even though it'd increase patient safety.
+
+Luckily with state of the art AI agents and long form voice transcription we have a solution where we can bake our cake and eat it too!
+
+- show the quality and patient safety venn diagram
+
+With PreScribe we can alleviate the stress of our health care workers while also working on pressing issue of both medication errors and diagnostic errors.
+
+As you saw in our demo, PreScribe is an assistant that watches over the doctor-patient interaction and checks off the latest medical checklists in real-time!
+
+Having a ground truth of the latest medical checklists allow for an equitable increase in patient safety due to how they can bring up {}
+
+We think in terms of the sheer frequency of use of such a tool combined with how overrepresented medication/diagnostic errors are combined with how eager medical worker are to reduce their time doing EHR notes, this is the most impactful idea we thought that can take advantage of the technology we have now.
+
+- diagram multiplying all these
