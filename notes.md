@@ -139,6 +139,8 @@ Our health care workers are overworked. Nurses and doctors spend around a daily 
 
 As such we've seen an explosion of AI scribes which relieve this problem. But one avenue that hasn't been fully exploited is using this technology to prevent and aid doctors in maximizing patient safety.
 
+- screen shots of like 5 different ones
+
 Medication errors alone account 44% of patient safety problems. Diagnostic error is also the leading cause of preventable patient harm as well.
 
 We also know that checklists save lives. (insert images of studies and checklist manifesto).
