@@ -8,3 +8,26 @@ Doctor: Okay. Have you ever had an infection in your liver or kidneys?
 Patient: No, I have not had any. **_checks off Must Not Have Liver Disease or Kidney Disease_**
 Doctor: Perfect. Are you allergic to any medication?
 Patient: No. **_checks off Must Not Be Allergic to Metformin_**
+
+Script #2:
+Doctor: Hello Mr. George, how are you today?
+Patient: Hello Doctor, I've been experiencing many headaches, dizziness, and chest pain. I am not sure why.
+Doctor: Oh I see, let's get to the bottom of this. Are you experiencing nausea, anxiety, or difficulty breathing?
+Patient: Yes, I have!
+Doctor: It seems like you have high blood pressure. I am going to prescribe Hygroton. Have you ever had conditions with your kidney or liver?
+Patient: No, I have not.
+Doctor: Do you drive often?
+Patient: No, I use public transportation everywhere.
+Doctor: Okay good. Limit any driving or activity that requires alertness until you can do so safely with the drug. Do you go outdoors often?
+Patient: Yes, I go outside all the time.
+Doctor: Okay, I have to warn you- hygroton makes your skin sensitive, so you should limit your exposure to the sun. You should use sunscreen and wear protective clothing when going outdoors.
+Patient: Okay. I also think my skin is abnormally sensitive. I get very itchy when I spend a lot of time in the sun already. Do you have any medication for that?
+Doctor: Yes! I can prescribe you some Benadryl. 
+Doctor: For hygroton, make sure to drink plenty of water and since you have diabetes, check your blood pressure regularly when you start taking hygroton.
+Patient: Okay.
+Doctor: For Benadryl, make sure you do not have any breathing and urinary issues before use.
+Patient: I do not have any.
+Doctor: When on Benadryl, please avoid alcohol, sedatives, or tranquilizers.
+Patient: Sounds good.
+Doctor: Also, like before, do not do anything that requires alertness. Keep in mind that the drug can result in drowsiness.
+Patient: Okay, I will keep that in mind! Thank you!
