@@ -6,7 +6,7 @@
     <title>PreScribe: Home</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
             padding: 0;
             background-color: #001861;
@@ -14,7 +14,7 @@
         }
         header {
             background-color: #001861;
-            padding: 5px 0; /* Increased padding */
+            padding: 5px 0;
             text-align: left;
             color: #ffffff;
             position: fixed;
@@ -31,54 +31,66 @@
             justify-content: space-between;
         }
         .logo {
-            font-size: 17px; /* Increased font size */
+            font-size: 17px;
             margin: 0;
-            font-weight: bold; /* Added font weight */
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Updated font */
+            font-weight: bold;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             align-items: center;
+            margin-left: -80px;
         }
         .logo img {
-            height: 50px; /* Adjust height of the logo */
-            margin-right: 5px; /* Add spacing between logo and text */
+            height: 50px;
+            margin-right: 5px;
             filter: invert(1);
         }
         .hero {
-            
-            background-image: linear-gradient(to right, #c1cef6, #5e79ca); /* Gradient from white to blue */
+            background-image: radial-gradient(ellipse, #ffffff, #C0C0C0);
             background-size: cover;
             background-position: center;
             color: #000000;
             text-align: center;
-            padding: 150px 50px; /* Adjusted padding */
+            padding: 250px 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             margin-top: 70px;
-            position: relative; /* Added relative positioning */
+            position: relative;
+        }
+
+        .hero-content {
+            max-width: 1000px;
+            margin: 0 auto;
         }
         .hero h1 {
             font-size: 48px;
             margin-bottom: 20px;
-            margin-left: -200px; /* Move text slightly to the left */
+            margin-left: -600px;
         }
         .hero p {
             font-size: 20px;
-            margin-bottom: 30px;
-            margin-left: -200px; /* Move text slightly to the left */
+            margin-bottom: 50px;
+            margin-left: -600px;
         }
         .cta-button {
             background-color: #001861;
             color: #ffffff;
-            padding: 15px 30px;
+            padding: 15px 25px;
             font-size: 20px;
             text-decoration: none;
-            border-radius: 5px;
+            border: 10px solid #001861;
+            border-radius: 35px;
             transition: background-color 0.3s;
-            margin-left: -200px; /* Move button slightly to the left */
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+            margin-right: 600px;
         }
         .cta-button:hover {
-            background-color: #001861;
+            background-color: #003a72;
+            color: #ffffff;
+            border-color: #003a72;
         }
         .services {
-            padding: 100px 40px;
+            padding: 50px 100px;
             text-align: center;
             background-color: #001861;
             color: #ffffff;
@@ -88,35 +100,77 @@
             margin-bottom: 40px;
         }
         .services p {
-            font-size: 18px;
+            font-size: 20px;
             line-height: 1.6;
             margin-bottom: 30px;
         }
         .diagram-image {
-            position: absolute; /* Position the image absolutely */
-            top: 50%; /* Move the image to the middle of the hero section */
-            right: 140px; /* Adjust the distance from the right */
-            transform: translateY(-50%); /* Center vertically */
-            max-width: 400px; /* Limit the image width */
+            display: flex;
+            position: absolute;
+            top: 50%;
+            right: 300px;
+            transform: translateX(50%) translateY(-50%);
+            max-width: 100%;
+            position: absolute;
         }
         .split-section {
             display: flex;
             justify-content: space-between;
             padding: 100px 40px;
-            background-color: #3e92cc;
+            background-color: #C0C0C0;
             color: #000000;
+            overflow: hidden;
+            overflow-x: hidden;
+            align-items:center;
         }
         .split-section .text {
-            flex: 0 0 50%; /* Take up half of the space */
-            padding-right: 20px; /* Add some spacing */
+            flex: 0 0 50%;
+            padding-right: 30px;
+            margin-left: 50px;
+            margin-right: 50px;
+            align-items: center;
+            font-size:20px;
+        }
+        .split-section .text .text-container {
+            padding-right:50px;
+            padding-left: 50px;
+            align-items: center;
+            line-height: 1.5;
         }
         .split-section .image {
-            flex: 0 0 50%; /* Take up half of the space */
+            flex: 0 0 50%;
+            padding: 0px;
         }
         .split-section img {
             max-width: 100%;
             height: auto;
+            margin-left: 0px;
+            margin-right: 0px;
+            border: 5px solid #000000;
+            box-sizing: border-box;
         }
+        @media (max-width: 900px) {
+            .diagram-image {
+                position: static;
+                transform: none;
+                max-width: 100%;
+                margin: 0 auto;
+            }
+            .cta-button {
+                margin: 20px auto;
+                display: block;
+                padding: 15px 25px;
+                width: 15%;
+            }
+            .hero {
+                padding: 150px 200px;
+            }
+            .hero h1, 
+            .hero p {
+                margin-left: 0;
+
+            }
+}
     </style>
 </head>
 <body>
@@ -129,38 +183,34 @@
             <!-- Add navigation links here -->
         </div>
     </header>
-
     <div class="hero">
-        <h1>Welcome to PreScribe</h1>
-        <p>Prescribe Responsibly, Scribe Accurately.</p>
-        <a href="#" class="cta-button"><b>Launch</b></a>
-        <img src="diagram-removebg-preview.png" alt="Diagram" class="diagram-image">
+        <div class="hero-content">
+            <h1>Welcome to PreScribe</h1>
+            <p>Prescribe Responsibly, Scribe Accurately.</p>
+            <a href="localhost:3000" class="cta-button"><b>Launch</b></a>
+            <img src="diagram-removebg-preview.png" alt="Diagram" class="diagram-image">
+        </div>
     </div>
-
     <div class="services">
         <h2>Our Services</h2>
-        <p>Our app offers a unique set of services focused on ensuring medication safety and patient well-being. We specialize in AI-driven conversation analysis, medication checklist implementation, and real-time monitoring of doctor-patient interactions. With our expertise, we ensure that every prescription is accompanied by thorough safety checks, enhancing patient care and peace of mind.</p>
+        <p>Our app offers a unique and comprehensive suite of services dedicated to ensuring medication safety and fostering patient well-being. At the heart of our platform is cutting-edge AI technology, empowering us to conduct meticulous conversation analysis between doctors and patients. Through this AI-driven approach, we meticulously parse through discussions to identify prescribed medications and pertinent health information.</p>
+        
+        <p>Moreover, our app seamlessly integrates medication checklist implementation, providing a structured framework for clinicians to adhere to essential safety protocols before finalizing prescriptions. This checklist covers a wide array of factors, including patient demographics, medical history, potential drug interactions, and contraindications, ensuring that every patient is evaluated against the prescription's criteria before proceeding.</p>
+        
+        <p>In addition, our real-time monitoring capabilities enable continuous oversight of doctor-patient interactions, allowing for immediate intervention in case of any discrepancies or safety concerns. This proactive approach not only enhances patient care but also fosters a sense of trust and confidence in the healthcare process.</p>
+        
+        <p>With our expertise and dedication, we strive to elevate the standard of care by ensuring that every patient is thoroughly evaluated against prescription criteria, ultimately promoting optimal patient outcomes and providing peace of mind to both patients and healthcare providers alike.</p>
     </div>
-
-    <!-- First split section -->
-    <div class="split-section">
-        <div class="text">
-            <h2>Dashboard</h2>
-            <p>This is the dashboard, where you can see...</p>
-        </div>
-        <div class="image">
-            <img src="example-image.jpg" alt="Example Image">
-        </div>
     </div>
-
-    <!-- Second split section -->
     <div class="split-section">
         <div class="image">
-            <img src="example-image.jpg" alt="Example Image">
+            <img src="prescribeimage.png" alt="conversation">
         </div>
         <div class="text">
-            <h2>Transcription</h2>
-            <p>This is the conversation between the doctor and patient being transcribed in real time. The prescribed drug in this case is metformin, and as the doctor and patient discuss the prescription, the checklist for metformin is checked off.</p>
+            <div class="text-container">
+                <h2>Transcription</h2>
+                <p>This is the conversation between the doctor and patient, being transcribed in real time. As the doctor asks patients questions about their health, the patient prescription checklist is marked accordingly. Once the doctor prescribes a medication, the checklist promptly displays the necessary requirements for its usage.</p>
+            </div>
         </div>
     </div>
 </body>
