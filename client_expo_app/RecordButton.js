@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
 import { Audio } from 'expo-av';
 import { FAST_API_URL } from "./constants";
 import * as FileSystem from 'expo-file-system';
 import axios from 'axios';
+import { Header } from 'react-native/Libraries/NewAppScreen';
 
-const size = 80;
+const size = 100;
 let recording = new Audio.Recording();
+let intervalId = null;
+let sessionId = "orange";
 
 const RecordButton = () => {
   const [isRecording, setIsRecording] = useState(false);
@@ -69,6 +72,7 @@ const RecordButton = () => {
       name: 'audio.caf',
       type: 'audio/caf',
     });
+    data.append('session_id', sessionId);
     try {
       const response = await axios.post(`${FAST_API_URL}/api/upload_audio`, data, {
         headers: {
@@ -82,9 +86,26 @@ const RecordButton = () => {
   };
 
   const handleRecordButtonPress = async () => {
+    if (isRecording) {
+      stopRecording();
+      setIsRecording(false);
+      clearInterval(intervalId);
+      return;
+    }
+    // get current timestamp in HH:MM_DD-MM-YYYY format
+    const date = new Date();
+    sessionId = `${date.getHours()}-${date.getMinutes()}-${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+    const response = await axios.get(`${FAST_API_URL}/api/initialize_session`, {
+      params: {
+        session_id: sessionId,
+      },
+    });
+    console.log('Session initialized:', response.data);
+
     startRecording();
 
-    setInterval(async () => {
+    intervalId = setInterval(async () => {
       await stopRecording();
       await startRecording();
     }, 10000);
@@ -99,20 +120,30 @@ const RecordButton = () => {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    flexContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+    },
   });
 
   return (
-    <TouchableOpacity
-      style={styles.button}
-      onPress={handleRecordButtonPress}
-      backgroundColor="blue"
-    >
-      <Icon
-        name={isRecording ? 'pause' : 'microphone'}
-        size={size / 2.75}
-        color="white"
-      />
-    </TouchableOpacity>
+    <View style={styles.flexContainer}>
+      <View style={styles.header}>
+        {/* <Text style={styles.headerText}>Recording App</Text> */}
+      </View>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleRecordButtonPress}
+        backgroundColor="blue"
+      >
+        <Icon
+          name={isRecording ? 'pause' : 'microphone'}
+          size={size / 2.5}
+          color="white"
+        />
+      </TouchableOpacity>
+    </View>
   );
 };
 
