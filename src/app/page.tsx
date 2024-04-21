@@ -30,12 +30,15 @@ export default function Page() {
                     {
                         Object.entries(sessions)
                             .sort((a, b) => b[1].name > a[1].name)
-                            .map(([sessionKey, session], index) => (
-                                <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-700 text-white font-bold rounded shadow-md hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition"
-                                    href={`\\session\\${sessionKey}`}>
-                                    Session {session["name"]}
-                                </Link>
-                            ))
+                            .map(([sessionKey, session], index) => {
+                                console.log("sessionKey", sessionKey)
+                                return (
+                                    <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-700 text-white font-bold rounded shadow-md hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition"
+                                        href={`\\session\\${sessionKey}`}>
+                                        Session {session["name"]}
+                                    </Link>
+                                )
+                            })
                     }
                 </div>
             </div>
