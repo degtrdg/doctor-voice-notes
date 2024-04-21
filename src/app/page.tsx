@@ -13,26 +13,28 @@ export default function Page() {
 
     useEffect(() => {
         if (value) {
-            setSessions(Object.values(value["Session"]));
+            setSessions((value as any)["Session"]);
         }
     }, [value]);
-    console.log(sessions);
-    return loading ? (
-        <Loading />
-    ) : (
+    if (loading) return <Loading />;
+
+    return (
         <div className="p-8 max-w-3xl mx-auto">
             <div className="flex flex-col gap-8">
                 <h1 className="text-center inline-block text-xl sm:text-2xl font-bold text-slate-800">
                     Patient Sessions
                 </h1>
                 <div className="h-[1.5px] w-full bg-gray-300" />
-                <div>
+                <div className="flex flex-col gap-4">
                     {
-                        sessions.map((session, index) => (
-                            <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-500 text-white font-bold rounded shadow-sm hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition" href={`\\session\\${index + 1}`}>
-                                Session {session["name"]}
-                            </Link>
-                        ))
+                        Object.entries(sessions)
+                            .sort((a, b) => b[1].name > a[1].name)
+                            .map(([sessionKey, session], index) => (
+                                <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-500 text-white font-bold rounded shadow-md hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition"
+                                    href={`\\session\\${sessionKey}`}>
+                                    Session {session["name"]}
+                                </Link>
+                            ))
                     }
                 </div>
             </div>

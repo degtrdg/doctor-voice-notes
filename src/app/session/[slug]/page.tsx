@@ -2,42 +2,51 @@
 import Checklist from "@/components/Checklist";
 import Transcript from "@/components/Transcript";
 import { useEffect, useState } from "react";
-import { ref } from "firebase/database";
+import { ref, set } from "firebase/database";
 import { database } from "@/firebase";
 import { useObjectVal } from "react-firebase-hooks/database";
 import Loading from "@/components/Loading";
 
 export default function Page({ params }: { params: { slug: string } }) {
-  const [sessionID, setSessionID] = useState<number>(1);
+  const sessionID = params.slug;
   const [value, loading, error] = useObjectVal(ref(database, '/'));
   const [transcription, setTranscription] = useState([]);
   const [checklist, setChecklist] = useState([]);
-
-  useEffect(() => {
-    setSessionID(parseInt(params.slug))
-  }, [])
+  const [currentLine, setCurrentLine] = useState<number>(0);
 
   useEffect(() => {
     if (value) {
       const sessions = (value as any)["Session"]
-      
-      if (0 < sessionID < sessions.length) {
+      const sessionsKeys = Object.keys(sessions)
+
+      if (sessionsKeys.includes(sessionID)) {
         const session = sessions[sessionID]
-        setTranscription(Object.values(session["Transcript"]))
-        setChecklist(Object.values(session["Checklist"]))
+        const sessionKeys = Object.keys(session)
+
+        if (sessionKeys.includes("Transcript")) {
+          setTranscription(Object.values(session["Transcript"]))
+        }
+        
+        if (sessionKeys.includes("Checklist")) {
+          setChecklist(Object.values(session["Checklist"]))
+        }
+        
+        if (currentLine == 0) {
+          setCurrentLine(0)
+        }
       }
     }
   }, [value])
 
-  return loading ? (
-    <Loading />
-  ) : (
+  if (loading) return <Loading />
+
+  return (
     <div className="flex h-screen">
-      <div className="flex flex-col gap-4 pt-4 pl-8 pr-10">
+      <div className="flex-1 flex grid-cols-2 flex-col gap-4 pt-4 pl-6 pr-10">
         <h2 className="inline-block text-xl sm:text-2xl font-bold text-slate-800">
           Session Transcript
         </h2>
-        <Transcript transcript={transcription} />
+        <Transcript transcript={transcription} currentLine={currentLine} setCurrentLine={setCurrentLine} />
         
       </div>
 
