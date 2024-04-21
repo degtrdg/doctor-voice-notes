@@ -12,6 +12,7 @@ export default function Page({ params }: { params: { slug: string } }) {
   const [value, loading, error] = useObjectVal(ref(database, '/'));
   const [transcription, setTranscription] = useState([]);
   const [checklist, setChecklist] = useState([]);
+  const[drugs, setDrugs] = useState<any[]>([]);
   const [currentLine, setCurrentLine] = useState<number>(0);
 
   useEffect(() => {
@@ -29,6 +30,10 @@ export default function Page({ params }: { params: { slug: string } }) {
         
         if (sessionKeys.includes("Checklist")) {
           setChecklist(Object.values(session["Checklist"]))
+        }
+
+        if (sessionKeys.includes("Drugs")) {
+          setDrugs(Object.values(session["Drugs"]))
         }
         
         if (currentLine == 0) {
@@ -57,7 +62,7 @@ export default function Page({ params }: { params: { slug: string } }) {
           <h2 className="inline-block text-xl sm:text-2xl font-bold text-slate-800">
           Patient Prescription Checklist
           </h2>
-          <Checklist checklist={checklist} />
+          <Checklist checklist={checklist} drugs={drugs} />
         </div>
       </div>
     </div>
