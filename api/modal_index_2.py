@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 import shutil
-from fastapi import FastAPI, File, HTTPException, UploadFile, WebSocket
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket
 from openai import OpenAI
 from pydantic import BaseModel
 from typing import Any, Dict, List, Optional
@@ -18,6 +18,8 @@ from prompts import (
     sysprompt_checklist,
     sysprompt_extract_drug,
     drugs,
+    prompt_fix_diarization,
+    sysprompt_fix_diarization
 )
 from chatgpt import complete
 
@@ -34,28 +36,12 @@ from firebase_provider import (
     get_checklist,
     get_transcript,
     add_drug,
-    get_drugs
+    get_drugs,
+    set_checklist,
+    create_session,
+    set_transcription
 )
 
-# sessions = {
-#     "1": {
-#         "diarization": [
-#             """
-# Doctor: Hello Mr. George, how are you today?
-# Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
-# Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
-# Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
-# Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
-# Patient: No I am not.
-# Doctor: Okay. Have you ever had an infection in your liver or kidneys?
-# Patient: No, I have not had any.
-# Doctor: Perfect. Are you allergic to any medication?
-# Patient: No.
-# """.strip()
-#         ],
-#         "curr_checklist": [],
-#     }
-# }
 sessions = get_sessions_db()
 
 client = OpenAI()
@@ -107,9 +93,16 @@ web_app.add_middleware(
     allow_headers=["*"],
 )
 
+# mounts = [
+#     modal.Mount.from_local_file(
+#         "doctor-voice-notes-firebase-adminsdk-3xtos-a8c7dc1ead.json",
+#         "/doctor-voice-notes-firebase-adminsdk-3xtos-a8c7dc1ead.json",
+#     )
+# ]
+
 image = (
     modal.Image.debian_slim(python_version="3.11")
-    .env({"OPENAI_API_KEY": ""})
+    .env({"OPENAI_API_KEY": "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"})
     .run_commands(
         "python3 --version",
         "apt-get update",
@@ -130,8 +123,18 @@ async def root():
     return {"message": "Whisper Transcription Service"}
 
 
+@web_app.get("/api/initialize_session")
+async def initialize_session(session_id: str):
+    all_sessions_data = get_sessions_db()
+    if session_id not in all_sessions_data:
+        import time
+        name = time.strftime("%H:%M %m-%d-%Y", time.localtime())
+        create_session(session_id, name)
+    return ResponseModel(success=True, message="Session initialized")
+
+
 @web_app.post("/api/upload_audio")
-async def upload_audio(file: UploadFile = File(...)):
+async def upload_audio(file: UploadFile = File(...), session_id: str = Form()):
     try:
         print("Received upload request:", file)
         print("func")
@@ -183,10 +186,17 @@ async def upload_audio(file: UploadFile = File(...)):
                     message="Could not extract markdown from the model's response.",
                 )
 
-        SESSION_CHANGE_THIS = "1"
+        # if the session does not exist, create it
+        all_sessions_data = get_sessions_db()
+        if session_id not in all_sessions_data:
+            import time
+            # name is time in HH:MM MM-DD-YYYY format
+            name = time.strftime("%H:%M %m-%d-%Y", time.localtime())
+            create_session(session_id, name)
+
 
         # Update the session with the transcription text
-        # if SESSION_CHANGE_THIS not in sessions:
+        # if session_id not in sessions:
         #     pass
         # sessions['1'] = {
         #     "diarization": [],
@@ -196,9 +206,14 @@ async def upload_audio(file: UploadFile = File(...)):
 
         for transcript_line in markdown_final.split("\n"):
             role, text = transcript_line.split(": ", 1)
-            append_to_transcript(SESSION_CHANGE_THIS, text, role)
+            append_to_transcript(session_id, text, role)
 
         # sessions['1']['diarization'].append(markdown_final)
+        get_drugs_list_update_firebase(session_id)
+        get_checklist_state(session_id)
+
+        if len(get_checklist(session_id).keys()) % 6 == 0:
+            fix_diarization(session_id)
 
         # Return the markdown content
         return ResponseModel(success=True, message={"diarization": markdown_final})
@@ -210,28 +225,7 @@ async def upload_audio(file: UploadFile = File(...)):
         )
 
 
-@web_app.get("/api/all_transcripts/{session_id}")
-def get_total_transcript(session_id: str):
-    # might be a problem if context length is too long but fine for now
-    # total_diarization = sessions[session_id]['diarization'].join('\n')
-
-    example = """
-Doctor: Hello Mr. George, how are you today?
-Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
-Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
-Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
-Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
-Patient: No I am not. **_checks off Not On Other Medication_**
-Doctor: Okay. Have you ever had an infection in your liver or kidneys?
-Patient: No, I have not had any. **_checks off Must Not Have Liver Disease or Kidney Disease_**
-Doctor: Perfect. Are you allergic to any medication?
-Patient: No. **_checks off Must Not Be Allergic to Metformin_**
-""".strip()
-
-    return ResponseModel(success=True, message={"diarization": example})
-
-
-def complete_helper(prompt_text, model_version, use_cache=True):
+def complete_helper(prompt_text, sysprompt, model_version, use_cache=True):
     response = complete(
         messages=[
             {"role": "system", "content": sysprompt},
@@ -243,86 +237,160 @@ def complete_helper(prompt_text, model_version, use_cache=True):
     return response
 
 
-@web_app.get("/api/checklist_state/{session_id}")
-async def get_checklist_state(session_id: str):
+def fix_diarization(session_id: str):
+    all_sessions_data = get_sessions_db()
+    if session_id not in all_sessions_data:
+        raise HTTPException(status_code=404, detail="Session not found")
+    # Join all transcripts in the session
+    # Retrieve the session data
+    transcript = get_transcript(session_id)
+    # Turn transcriptions into str
+    full_transcript = "\n".join(
+        [f"{entry['user']}: {entry['text']}" for entry in transcript]
+    )
+    curr_prompt = prompt_fix_diarization.format(transcript=full_transcript)
+    response = complete_helper(curr_prompt, sysprompt_fix_diarization, 'gpt-4-turbo')
+    match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+    if match:
+        new_transcript = match.group(1).strip()
+    else:
+        response = complete_helper(
+            curr_prompt, sysprompt_extract_drug, "gpt-4-turbo", use_cache=False)
+        match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+        if match:
+            new_transcript = match.group(1).strip()
+
+
+        else:
+            print(
+                "Error: Could not extract md block from the model's response.")
+            return []
+        
+    # process the new_transcript and put it up
+    total_transcript = {}
+    for idx, transcript_line in enumerate(new_transcript.split("\n")):
+        role, text = transcript_line.split(": ", 1)
+        total_transcript[f"wuggy{idx}"] = {'text': text, 'user': role}
+
+    set_transcription(session_id, total_transcript)
+        
+    return transcript
+
+    
+
+def get_checklist_state(session_id: str) -> list: # async
     all_sessions_data = get_sessions_db()
     if session_id not in all_sessions_data:
         raise HTTPException(status_code=404, detail="Session not found")
 
+    # Join all transcripts in the session
     # Retrieve the session data
     transcript = get_transcript(session_id)
 
     # Join all transcripts in the session
     full_transcript = "\n".join(
-        [f"{value['user']}: {value['text']}" for _, value in transcript.items()]
+        [f"{entry['user']}: {entry['text']}" for entry in transcript]
     )
     assert full_transcript not in [None, ""], "Transcript is empty"
 
-    general_checklist = get_checklist(session_id)
-    
-    checklist_state = {}
-    # If there is no checklist, try to find a prescription in the transcript
-    if not get_drugs():
-        curr_prompt = prompt_extract_drug.format(transcript=full_transcript)
-        response = complete_helper(curr_prompt, "gpt-3.5-turbo")
-        match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-        if match:
-            drug = match.group(1).strip()
-        else:
-            response = complete_helper(curr_prompt, "gpt-3.5-turbo", use_cache=False)
-            drug = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
-            if match:
-                drug = match.group(1).strip()
-            else:
-                print(
-                    "Error: Could not extract the checklist from the model's response."
-                )
-                drug = None
-                # If no checklist is found, return an empty checklist state
-                checklist_state = {"message": "No checklist found in the transcript."}
-                return ChecklistModel(success=False, checklist=checklist_state)
-        drug = drug.strip()
+    drugs_list = get_drugs(session_id)
+    drug_checklist = []
+    # Get a checklist from the drugs
+    for drug in drugs_list:
         if drug in drugs:
-            add_drug(session_id, drug)
-            checklist_state = drugs[drug]
-        else:
-            return ChecklistModel(success=True, checklist={})
+            drug_checklist.append(drugs[drug]['contraindications'])
 
-    
-
+    checklist_state = [[
+        {
+            "description": "Doctor asked patient for current medications",
+            "checked": False
+        },
+        {
+            "description": "Doctor asked patient for current symptoms",
+            "checked": False
+        },
+        {
+            "description": "Doctor gave diagnosis or verdict on ailment",
+            "checked": False
+        },
+        {
+            "description": "Doctor prescrived medication to patient",
+            "checked": False
+        }
+    ]] + drug_checklist
 
     # If there is a checklist, update it based on the transcript
-    # If drug based checklist items have been added
-    if checklist_state:
-        curr_prompt = prompt_checklist.format(
-            drug=drug,
-            checklist=json.dumps(checklist_state["contraindications"], indent=2),
-            transcript=full_transcript,
-        )
-        response = complete_helper(curr_prompt, "gpt-4-turbo")
-        match = re.search(JSON_PATTERN, response, re.DOTALL)
-        if match:
-            # TODO: this needs more checks but should be fine tbh
-            updated_checklist = json.loads(match.group(1).strip())
-            checklist_state["contraindications"] = updated_checklist
-        else:
-            # If the checklist cannot be updated, return the current state with an error message
-            print(
-                "Error: Could not extract the updated checklist from the model's response."
-            )
-            checklist_state = {
-                "message": "Could not update the checklist based on the transcript."
-            }
-            return ChecklistModel(success=False, checklist=checklist_state)
+    curr_prompt = prompt_checklist.format(checklist=json.dumps(checklist_state, indent=2), transcript=full_transcript)
+    response = complete_helper(curr_prompt, sysprompt_checklist, "gpt-4-turbo")
+    match = re.search(JSON_PATTERN, response, re.DOTALL)
+    if match:
+        # TODO: this needs more checks but should be fine tbh
+        updated_checklist = json.loads(match.group(1).strip())
+        # updated_checklist = [item for sublist in updated_checklist for item in sublist]
+        print(updated_checklist)
+        # update firebase
+        final_checklist_dict = {}
+
+        for idx, checklist_drug_group in enumerate(updated_checklist):
+            for i, item in enumerate(checklist_drug_group):
+                final_checklist_dict[str(idx*10 + i)] = {
+                    "text": item["description"],
+                    "checked": item["checked"],
+                    "word_relation": str(idx)
+                }
+
+        set_checklist(session_id, final_checklist_dict)
+
+        return updated_checklist
     else:
-        # If there is no checklist, return an error message
-        checklist_state = {"message": "No checklist found in the transcript."}
-        return ChecklistModel(success=False, checklist=checklist_state)
+        # If the checklist cannot be updated, return the current state with an error message
+        print(
+            "Error: Could not extract the updated checklist from the model's response.")
+        checklist_state = {
+            "message": "Could not update the checklist based on the transcript."}
+        return []
 
-    return ChecklistModel(success=True, checklist=updated_checklist)
+def get_drugs_list_update_firebase(session_id: str) -> list: # async
+    all_sessions_data = get_sessions_db()
+    if session_id not in all_sessions_data:
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Join all transcripts in the session
+    # Retrieve the session data
+    transcript = get_transcript(session_id)
+
+    # Join all transcripts in the session
+    full_transcript = "\n".join(
+        [f"{entry['user']}: {entry['text']}" for entry in transcript]
+    )
+    assert full_transcript not in [None, ""], "Transcript is empty"
+
+    curr_prompt = prompt_extract_drug.format(transcript=full_transcript)
+    response = complete_helper(curr_prompt, sysprompt_extract_drug, "gpt-3.5-turbo")
+    match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+    if match:
+        drugs_list = match.group(1).strip()
+    else:
+        response = complete_helper(
+            curr_prompt, sysprompt_extract_drug, "gpt-3.5-turbo", use_cache=False)
+        match = re.search(MARKDOWN_PATTERN, response, re.DOTALL)
+        if match:
+            drugs_list = match.group(1).strip()
+        else:
+            print(
+                "Error: Could not extract md block from the model's response.")
+            return []
+
+    drugs_list = drugs_list.strip().split('\n')
+    cur_drug_list = get_drugs(session_id)
+
+    for drug in drugs_list:
+        if drug and drug not in cur_drug_list:
+            add_drug(session_id, drug)
+    return drugs_list
 
 
-@app.function(image=image)
+@app.function(image=image) # , mounts=mounts
 @modal.asgi_app()
 def fastapi_app():
     return web_app

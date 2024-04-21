@@ -52,7 +52,7 @@ You are a nurse watching over the transcript of a doctor patient conversation. Y
 '''.strip()
 
 prompt_checklist = '''
-You are given a checklist that is required to be checked off before prescribing {drug}. You are also given the transcript of the real-time patient-doctor interaction. 
+You are given a checklist that is required to be checked off before prescribing drugs to the patient/releasing them. It is initialized to empty. You are also given the transcript of the real-time patient-doctor interaction. 
 
 The following is how the checklist is currently stored in the system currently for :
 ```json
@@ -68,6 +68,24 @@ This is the transcript so far:
 
 Output a json block below with the updated JSON object to be put in the system. Don't yap.
 '''.strip()
+
+prompt_fix_diarization = '''
+You are given the current transcript between a doctor and a patient. These transcriptions are quite error prone since the audio is taken in 10 second chunks and a program has to guess the speaker from just that. Your job is to fix up the transcript and perhaps reorder what you see to make the transcript work. Keep the same format but re-output the entire transcript.
+
+For example, you might see that the transcript assigned a statement to the doctor when it probably was from the patient. Or the transcript might say 'war for in' but if it is in the context of prescribing, you should understand that 'Warfarin' is what was intended. Or there might be a repeat of the same sentence that you need to remove. Try not to change the transcript unless you are sure of the change.
+
+This is the transcript so far:
+```md
+{transcript}
+```
+
+Output a md block below with the TOTAL new transcript. Don't yap just give the new md block.
+'''
+
+
+sysprompt_fix_diarization = '''
+You are an expert at correcting speaker diarization transcripts between a doctor and a patient.
+'''
 
 
 drugs = {
