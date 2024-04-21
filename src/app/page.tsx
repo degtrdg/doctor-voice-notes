@@ -23,15 +23,19 @@ export default function Page() {
             <Navbar />
 
             <div className="mt-6">
-                <h1 className="text-center text-xl sm:text-2xl font-medium text-slate-800 mb-6">
+                <h1 className="text-center text-xl sm:text-2xl font-medium text-slate-800 mb-8">
                     Transcription Sessions
                 </h1>
+
+                <div className="max-w-3xl mx-auto mb-10">
+                    <div className="h-[1.5px] bg-gray-300 h-full" />
+                </div>
+
                 <div className="flex flex-col gap-4 max-w-3xl mx-auto">
                     {
                         Object.entries(sessions)
                             .sort((a, b) => b[1].name > a[1].name)
                             .map(([sessionKey, session], index) => {
-                                console.log("sessionKey", sessionKey)
                                 return (
                                     <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-700 text-white font-bold rounded shadow-md hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition"
                                         href={`\\session\\${sessionKey}`}>

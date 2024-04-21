@@ -6,10 +6,11 @@ function capitalize(s: string) {
 
 export default function Checklist({ checklist, drugs }: { checklist: any[], drugs: any }) {
     const obj: any = {};
+    const newDrugs = ["", ...drugs]
     for (const index in checklist) {
         const item = checklist[index];
-        const wordRelation = item?.word_relation;
-        const drug = drugs[wordRelation];
+        const drugIndex = item?.word_relation;
+        let drug = newDrugs[drugIndex];
         if (!Object.keys(obj).includes(drug)) {
             obj[drug] = []
         }

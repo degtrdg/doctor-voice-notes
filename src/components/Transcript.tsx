@@ -23,7 +23,7 @@ export default function Transcript({ transcript, currentLine, setCurrentLine }: 
     };
 
     return (
-        <div className="flex flex-col gap-3 lg:overflow-y-auto">
+        <div className="flex flex-col gap-3">
             {transcript.map((line, index) => (
                 <div key={index}>
                     <p className="text-md text-justify text-slate-800">

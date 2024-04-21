@@ -61,7 +61,7 @@ export default function Page({ params }: { params: { slug: string } }) {
           <Transcript transcript={transcription} currentLine={currentLine} setCurrentLine={setCurrentLine} />
         </div>
 
-        <div className="flex gap-10">
+        <div className="flex gap-10 h-max">
           <div className="bg-gray-200 w-[1.5px] rounded-full" />
 
           <div className="flex flex-col gap-6 pt-8 pr-9">
