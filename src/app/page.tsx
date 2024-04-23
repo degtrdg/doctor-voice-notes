@@ -5,7 +5,7 @@ import { ref } from "firebase/database";
 import { database } from "@/firebase";
 import Loading from "@/components/Loading";
 import Link from 'next/link';
-
+import Navbar from "@/components/Navbar";
 
 export default function Page() {
     const [value, loading, error] = useObjectVal(ref(database, '/'));
@@ -13,26 +13,36 @@ export default function Page() {
 
     useEffect(() => {
         if (value) {
-            setSessions(Object.values(value["Session"]));
+            setSessions((value as any)["Session"]);
         }
     }, [value]);
-    console.log(sessions);
-    return loading ? (
-        <Loading />
-    ) : (
-        <div className="p-8 max-w-3xl mx-auto">
-            <div className="flex flex-col gap-8">
-                <h1 className="text-center inline-block text-xl sm:text-2xl font-bold text-slate-800">
-                    Patient Sessions
+    if (loading) return <Loading />;
+
+    return (
+        <div className="mx-auto">
+            <Navbar />
+
+            <div className="mt-6">
+                <h1 className="text-center text-xl sm:text-2xl font-medium text-slate-800 mb-8">
+                    Transcription Sessions
                 </h1>
-                <div className="h-[1.5px] w-full bg-gray-300" />
-                <div>
+
+                <div className="max-w-3xl mx-auto mb-10">
+                    <div className="h-[1.5px] bg-gray-300 h-full" />
+                </div>
+
+                <div className="flex flex-col gap-4 max-w-3xl mx-auto">
                     {
-                        sessions.map((session, index) => (
-                            <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-500 text-white font-bold rounded shadow-sm hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition" href={`\\session\\${index + 1}`}>
-                                Session {session["name"]}
-                            </Link>
-                        ))
+                        Object.entries(sessions)
+                            .sort((a, b) => b[1].name > a[1].name)
+                            .map(([sessionKey, session], index) => {
+                                return (
+                                    <Link key={index} className="text-center inline-block w-full py-3 px-6 bg-blue-700 text-white font-bold rounded shadow-md hover:bg-blue-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition"
+                                        href={`\\session\\${sessionKey}`}>
+                                        Session {session["name"]}
+                                    </Link>
+                                )
+                            })
                     }
                 </div>
             </div>
