@@ -159,30 +159,6 @@ async def upload_audio(file: UploadFile = File(...)):
         )
 
 
-@app.get("/api/all_transcripts/{session_id}")
-def get_total_transcript(session_id: str):
-    # might be a problem if context length is too long but fine for now
-    # total_diarization = sessions[session_id]['diarization'].join('\n')
-
-    example = """
-Doctor: Hello Mr. George, how are you today?
-Patient: Hello Doctor, I feel a lot more tired than usual and I've been unintentionally losing a lot of weight- I'm a lot skinnier now.
-Doctor: Oh I see, let's get to the bottom of this. Are you experiencing any of the following: frequent urination, blurred vision, or poor wound healing?
-Patient: Hm, I think I have been experiencing frequent urination and blurred vision.
-Doctor: It seems like you have Type 2 Diabetes. I am going to prescribe you metformin. Are you on any other medication?
-Patient: No I am not. **_checks off Not On Other Medication_**
-Doctor: Okay. Have you ever had an infection in your liver or kidneys?
-Patient: No, I have not had any. **_checks off Must Not Have Liver Disease or Kidney Disease_**
-Doctor: Perfect. Are you allergic to any medication?
-Patient: No. **_checks off Must Not Be Allergic to Metformin_**
-""".strip()
-
-    return ResponseModel(
-        success=True,
-        message={"diarization": example}
-    )
-
-
 def get_checklist(prompt_text, model_version, use_cache=True):
     response = complete(messages=[{"role": "system", "content": sysprompt},
                                   {"role": "user", "content": prompt_text}], model=model_version, use_cache=use_cache)

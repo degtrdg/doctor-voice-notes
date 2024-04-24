@@ -1,81 +1,80 @@
 import React, { useState, useEffect } from 'react';
-import { TouchableOpacity, StyleSheet } from 'react-native';
+import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-import AudioRecorderPlayer from 'react-native-audio-recorder-player';
 import { Audio } from 'expo-av';
 import { FAST_API_URL } from "./constants";
 import * as FileSystem from 'expo-file-system';
 import axios from 'axios';
+import { Header } from 'react-native/Libraries/NewAppScreen';
 
-const size = 80;
-const audioRecorderPlayer = new AudioRecorderPlayer();
+const size = 100;
+let recording = new Audio.Recording();
+let intervalId = null;
+let sessionId = "orange";
 
 const RecordButton = () => {
   const [isRecording, setIsRecording] = useState(false);
-  const [recordPath, setRecordPath] = useState('');
-  const [recording, setRecording] = useState(null);
   const [audioPermission, setAudioPermission] = useState(null);
 
   useEffect(() => {
-    async function getPermission() {
-      await Audio.requestPermissionsAsync().then((permission) => {
+    function getPermission() {
+      Audio.requestPermissionsAsync().then((permission) => {
         console.log('Permission Granted: ' + permission.granted);
-        setAudioPermission(permission.granted)
+        setAudioPermission(permission.granted);
       }).catch(error => {
         console.log(error);
       });
     };
-
     getPermission();
   }, []);
 
   const startRecording = async () => {
     try {
+      console.log('Requesting permissions..');
+      setIsRecording(true);
+      await Audio.requestPermissionsAsync();
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: true,
-        playsInSilentModeIOS: true
+        playsInSilentModeIOS: true,
       });
-      const newRecording = new Audio.Recording();
-      await newRecording.prepareToRecordAsync(Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY);
-      await newRecording.startAsync();
-      setRecording(newRecording);
-      setIsRecording(true);
-
-      // Automatically stop and restart recording every 10 seconds
-      setInterval(async () => {
-        if (newRecording) {
-          await stopRecording(newRecording);
-          await startRecording();
-        }
-      }, 10000);  // 10000 ms = 10 seconds
-    } catch (error) {
-      console.error('Failed to start recording', error);
+      console.log('Starting recording..');
+      await recording.prepareToRecordAsync(
+        Audio.RECORDING_OPTIONS_PRESET_HIGH_QUALITY
+      );
+      await recording.startAsync();
+      console.log('Recording started');
+    } catch (err) {
+      console.error('Failed to start recording', err);
     }
   };
 
-  const stopRecording = async (recording) => {
+  async function stopRecording() {
     try {
-      console.log('Stopping Recording');
+      console.log('Stopping recording..');
       await recording.stopAndUnloadAsync();
       const uri = recording.getURI();
+      console.log('Recording stopped and stored at', uri);
+      recording = new Audio.Recording();
+
       const fileInfo = await FileSystem.getInfoAsync(uri);
       uploadAudio(fileInfo.uri);
-      // setRecording(null);
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to stop recording', error);
     }
-  };
+
+  }
 
   const uploadAudio = async (uri) => {
     const data = new FormData();
-    data.append('session_id', '1');
     data.append('file', {
       uri: uri,
       name: 'audio.caf',
       type: 'audio/caf',
     });
+    data.append('session_id', sessionId);
     try {
-      const response = await axios.post(`FAST_API_URL`, data, {
+      const response = await axios.post(`${FAST_API_URL}/api/upload_audio`, data, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
@@ -88,10 +87,28 @@ const RecordButton = () => {
 
   const handleRecordButtonPress = async () => {
     if (isRecording) {
-      await stopRecording(recording);
-    } else {
-      await startRecording();
+      stopRecording();
+      setIsRecording(false);
+      clearInterval(intervalId);
+      return;
     }
+    // get current timestamp in HH:MM_DD-MM-YYYY format
+    const date = new Date();
+    sessionId = `${date.getHours()}-${date.getMinutes()}-${date.getDate()}-${date.getMonth() + 1}-${date.getFullYear()}`;
+
+    const response = await axios.get(`${FAST_API_URL}/api/initialize_session`, {
+      params: {
+        session_id: sessionId,
+      },
+    });
+    console.log('Session initialized:', response.data);
+
+    startRecording();
+
+    intervalId = setInterval(async () => {
+      await stopRecording();
+      await startRecording();
+    }, 10000);
   };
 
   const styles = StyleSheet.create({
@@ -103,20 +120,30 @@ const RecordButton = () => {
       justifyContent: 'center',
       alignItems: 'center',
     },
+    flexContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+    },
   });
 
   return (
-    <TouchableOpacity
-      style={styles.button}
-      onPress={handleRecordButtonPress}
-      backgroundColor="blue"
-    >
-      <Icon
-        name={isRecording ? 'pause' : 'microphone'}
-        size={size / 2.75}
-        color="white"
-      />
-    </TouchableOpacity>
+    <View style={styles.flexContainer}>
+      <View style={styles.header}>
+        {/* <Text style={styles.headerText}>Recording App</Text> */}
+      </View>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleRecordButtonPress}
+        backgroundColor="blue"
+      >
+        <Icon
+          name={isRecording ? 'pause' : 'microphone'}
+          size={size / 2.5}
+          color="white"
+        />
+      </TouchableOpacity>
+    </View>
   );
 };
 
